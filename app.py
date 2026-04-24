@@ -5,7 +5,7 @@ import os
 
 app = Flask(__name__)
 
-# تأكد أن هذه البيانات صحيحة 100%
+# بيانات البوت الخاصة بك
 BOT_TOKEN = "8620142253:AAH8TFYy219PdSiRaVx6et_WE04alYjXaVk"
 CHAT_ID = "6315170436"
 
@@ -13,34 +13,33 @@ CHAT_ID = "6315170436"
 def upload():
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendDocument"
     
-    # جلب البيانات الخام من المايكروتك
-    data = request.get_data()
+    # تصحيح: قراءة البيانات الخام من المايكروتك (src-path)
+    # المايكروتك يرسل الملف كـ byte stream
+    file_data = request.get_data()
     
-    if not data:
-        print("Error: No data received from MikroTik")
-        return "No Data", 400
+    if not file_data:
+        return "No data found", 400
 
     try:
-        # تحويل البيانات إلى ملف افتراضي
-        file_io = io.BytesIO(data)
-        file_io.name = "AL-Rasheed.backup" # تسمية الملف داخل السيرفر
+        # تحويل البيانات إلى ملف ليفهمه التليجرام
+        file_io = io.BytesIO(file_data)
+        file_io.name = "AL-Rasheed.backup"
         
         # إرسال الملف للتليجرام
-        files = {'document': file_io}
-        payload = {'chat_id': CHAT_ID}
+        response = requests.post(
+            url, 
+            data={'chat_id': CHAT_ID}, 
+            files={'document': file_io}
+        )
         
-        r = requests.post(url, data=payload, files=files)
-        
-        print(f"Telegram Response: {r.text}") # سيظهر في سجلات Render
-        
-        if r.status_code == 200:
-            return "OK", 200
+        if response.status_code == 200:
+            return "Success", 200
         else:
-            return f"Telegram Error: {r.status_code}", 400
+            # إذا كان الخطأ من التليجرام، السيرفر سيرد عليك بـ 400
+            return f"Telegram Error: {response.text}", 400
             
     except Exception as e:
-        print(f"System Error: {str(e)}")
-        return "Internal Error", 500
+        return f"Server Error: {str(e)}", 500
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
